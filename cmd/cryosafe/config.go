@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/wyw14/cry-98/internal/fill"
 )
 
 type config struct {
@@ -13,6 +15,7 @@ type config struct {
 	ShutdownTimeout   time.Duration
 	ProbeStaleAfter   time.Duration
 	NotificationRetry time.Duration
+	AutoFill          fill.AutoFillPolicy
 }
 
 func loadConfig() (config, error) {
@@ -33,5 +36,11 @@ func loadConfig() (config, error) {
 		ShutdownTimeout:   10 * time.Second,
 		ProbeStaleAfter:   2 * time.Minute,
 		NotificationRetry: 5 * time.Second,
+		AutoFill: fill.AutoFillPolicy{
+			LowThreshold:       20,
+			RecoveryThreshold:  25,
+			ConsecutiveSamples: 3,
+			Cooldown:           10 * time.Minute,
+		},
 	}, nil
 }

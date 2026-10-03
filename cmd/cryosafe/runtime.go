@@ -161,9 +161,20 @@ func buildRuntime(cfg config, now func() time.Time) (*runtime, error) {
 	if err != nil {
 		return nil, err
 	}
+	autoFillPolicies := make(map[string]fill.AutoFillPolicy, len(vesselRegistry.List()))
+	for _, item := range vesselRegistry.List() {
+		autoFillPolicies[item.ID] = cfg.AutoFill
+	}
+	autoTrigger, err := fill.NewAutoTrigger(autoFillPolicies, func(ctx context.Context, vesselID string, observedAt time.Time) error {
+		_, err := fillService.OnLowLevel(ctx, vesselID, observedAt)
+		return err
+	}, now)
+	if err != nil {
+		return nil, err
+	}
 	if err := ingestor.AddObserver(func(sample model.Sample) {
-		if sample.Kind == model.ProbeLevel && sample.Value < 20 {
-			_, _ = fillService.OnLowLevel(context.Background(), sample.VesselID, sample.ObservedAt)
+		if observeErr := autoTrigger.Observe(context.Background(), sample); observeErr != nil && !errors.Is(observeErr, fill.ErrActiveSession) {
+			slog.Warn("automatic fill demand rejected", "vessel", sample.VesselID, "error", observeErr)
 		}
 	}); err != nil {
 		return nil, err
