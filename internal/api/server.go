@@ -17,6 +17,7 @@ import (
 type Dependencies struct {
 	Vessels        *vessel.Registry
 	Fills          *fill.Service
+	AutoFill       *fill.AutoTrigger
 	Alarms         *alarm.Service
 	Probes         *probe.Registry
 	ProbeLifecycle *probe.Lifecycle
@@ -55,6 +56,9 @@ func (s *Server) routes() chi.Router {
 	router.Route("/api", func(api chi.Router) {
 		api.Get("/vessels", s.listVessels)
 		api.Get("/vessels/stream", s.streamVessels)
+		api.Get("/vessels/{id}/auto-fill-policy", s.getAutoFillPolicy)
+		api.Put("/vessels/{id}/auto-fill-policy", s.putAutoFillPolicy)
+		api.Delete("/vessels/{id}/auto-fill-policy", s.deleteAutoFillPolicy)
 		api.Get("/fill-sessions", s.listFillSessions)
 		api.Post("/fill-sessions", s.startFill)
 		api.Post("/fill-sessions/{id}/soak", s.beginSoak)

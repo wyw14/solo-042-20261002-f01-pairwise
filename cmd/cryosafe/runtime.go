@@ -161,11 +161,19 @@ func buildRuntime(cfg config, now func() time.Time) (*runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := ingestor.AddObserver(func(sample model.Sample) {
-		if sample.Kind == model.ProbeLevel && sample.Value < 20 {
-			_, _ = fillService.OnLowLevel(context.Background(), sample.VesselID, sample.ObservedAt)
+	autoTrigger := fill.NewAutoTrigger(fillService, now)
+	defaultAutoPolicy := fill.AutoPolicy{
+		LowThreshold:       20,
+		RecoveryThreshold:  28,
+		ConsecutiveSamples: 3,
+		Cooldown:           2 * time.Minute,
+	}
+	for _, vesselID := range []string{"V-03", "V-07", "V-09", "V-12", "V-15", "V-18"} {
+		if err := autoTrigger.SetPolicy(vesselID, defaultAutoPolicy); err != nil {
+			return nil, err
 		}
-	}); err != nil {
+	}
+	if err := ingestor.AddObserver(autoTrigger.Observe); err != nil {
 		return nil, err
 	}
 
@@ -196,6 +204,7 @@ func buildRuntime(cfg config, now func() time.Time) (*runtime, error) {
 	apiServer := api.NewServer(api.Dependencies{
 		Vessels:        vesselRegistry,
 		Fills:          fillService,
+		AutoFill:       autoTrigger,
 		Alarms:         alarmService,
 		Probes:         probeRegistry,
 		ProbeLifecycle: probeLifecycle,

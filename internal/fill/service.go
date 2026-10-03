@@ -28,6 +28,13 @@ func (s *Service) OnLowLevel(ctx context.Context, vesselID string, observedAt ti
 	return s.coordinator.StartAutomatic(ctx, vesselID, s.defaultLiters)
 }
 
+// HasActiveSession reports whether the vessel currently has an active fill
+// session of any origin, so the automatic flow never preempts a manual fill
+// or another running session.
+func (s *Service) HasActiveSession(vesselID string) bool {
+	return s.coordinator.HasActive(vesselID)
+}
+
 func (s *Service) StartManual(ctx context.Context, vesselID string, liters float64) (model.FillSession, error) {
 	if liters <= 0 {
 		liters = s.defaultLiters

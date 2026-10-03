@@ -131,6 +131,13 @@ func (c *Coordinator) BeginSoak(sessionID uuid.UUID) (model.FillSession, error) 
 	return next, nil
 }
 
+func (c *Coordinator) HasActive(vesselID string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	_, exists := c.active[vesselID]
+	return exists
+}
+
 func (c *Coordinator) Get(id uuid.UUID) (model.FillSession, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
